@@ -345,31 +345,3 @@ with open("tree1.dot", 'w') as f:
                               filled= True )
 #note: dot tree1.dot -Tpng -o tree1.png        
 
-##################### grid search  ###############################################
-param_grid = {"max_depth": [3,4,5,6,7,8,9],
-              "min_samples_leaf": [1,2,3,4,5,6,7,8,9,10],
-              "criterion":["gini", "entropy"]}
-decision_tree = tree.DecisionTreeClassifier()
-
-grid = GridSearchCV(estimator = decision_tree,param_grid = param_grid, cv=3, n_jobs=-1)
-grid.fit(x_trainsplit, y_trainsplit)
-print('hiiiiiiiiii')
-print("\n")
-print("tuned decision tree parameters:")
-print("tuned decision tree parameters: ",format(grid.best_params_))
-print("\n")
-print("Best Score is: ",format(grid.best_score_))
-
-# Predicting results for test dataset
-y_train_pred = grid.predict(x_trainsplit)
-
-acc_decision_tree_train = round(grid.score(x_trainsplit, y_trainsplit) * 100, 2)
-print("\n")
-print("Accuracy on df_train dataset(GS)",acc_decision_tree_train)
-
-y_test_pred = grid.predict(x_testsplit)
-
-acc_decision_tree_test = round(grid.score(x_testsplit, y_testsplit) * 100, 2)
-print("\n")
-print("Accuracy on pdTest dataset(GS)",acc_decision_tree_test)
-##############################################################################
