@@ -162,13 +162,35 @@ print(df.to_string(index=False))
     # print("Accuracy per fold: ", fold_accuracy, "\n")
     # print("Average accuracy: ", avg)
     # print("\n") 
-
-############################### splitting data ###################################
+'''   
+############################### splitting data into 80:20 ###################################
 
 X = totaldata_dummies.drop(['Survived'], axis=1).values 
 Y = totaldata_dummies['Survived'].values
 
 x_train, x_test, y_train, y_test = train_test_split(X, Y,test_size=0.20,random_state=42)
+print("\nx_train:\n")
+print(x_train)
+print(x_train.shape)
+
+print("\nx_test:\n")
+print(x_test)
+print(x_test.shape)
+
+print("\ny_train:\n")
+print(y_train)
+print(y_train.shape)
+
+print("\ny_test:\n")
+print(y_test)
+print(y_test.shape)
+'''
+######################### splitting data into 50:50 ####################################
+
+X = totaldata_dummies.drop(['Survived'], axis=1).values 
+Y = totaldata_dummies['Survived'].values
+
+x_train, x_test, y_train, y_test = train_test_split(X, Y,test_size=0.50,random_state=42)
 print("\nx_train:\n")
 print(x_train)
 print(x_train.shape)
