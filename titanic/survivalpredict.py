@@ -38,7 +38,8 @@ print(totalTest)
 
 totaldata=pd.concat([train,totalTest])
 print(totaldata.shape)
-print('totaldata------',totaldata)
+print('totaldata------')
+print(totaldata.head())
 ################################################
 
 # Store our test passenger IDs for easy access
@@ -80,9 +81,35 @@ for dataset in full_data:
     # Next line has been improved to avoid warning
     dataset.loc[np.isnan(dataset['Age']), 'Age'] = age_null_random_list
     dataset['Age'] = dataset['Age'].astype(int)
-
+'''
 # Define function to extract titles from passenger names
-def get_title(name):
+def get_title(name):# Feature that tells whether a passenger had a cabin on the Titanic
+train['Has_Cabin'] = train["Cabin"].apply(lambda x: 0 if type(x) == float else 1)
+test['Has_Cabin'] = test["Cabin"].apply(lambda x: 0 if type(x) == float else 1)
+
+# Create new feature FamilySize as a combination of SibSp and Parch
+for dataset in full_data:
+    dataset['FamilySize'] = dataset['SibSp'] + dataset['Parch'] + 1
+# Create new feature IsAlone from FamilySize
+for dataset in full_data:
+    dataset['IsAlone'] = 0
+    dataset.loc[dataset['FamilySize'] == 1, 'IsAlone'] = 1
+# Remove all NULLS in the Embarked column
+for dataset in full_data:
+    dataset['Embarked'] = dataset['Embarked'].fillna('S')
+# Remove all NULLS in the Fare column
+for dataset in full_data:
+    dataset['Fare'] = dataset['Fare'].fillna(train['Fare'].median())
+
+# Remove all NULLS in the Age column
+for dataset in full_data:
+    age_avg = dataset['Age'].mean()
+    age_std = dataset['Age'].std()
+    age_null_count = dataset['Age'].isnull().sum()
+    age_null_random_list = np.random.randint(age_avg - age_std, age_avg + age_std, size=age_null_count)
+    # Next line has been improved to avoid warning
+    dataset.loc[np.isnan(dataset['Age'])
+   
     title_search = re.search(' ([A-Za-z]+)\.', name)
     # If the title exists, extract and return it.
     if title_search:
@@ -98,16 +125,16 @@ for dataset in full_data:
     dataset['Title'] = dataset['Title'].replace('Mlle', 'Miss')
     dataset['Title'] = dataset['Title'].replace('Ms', 'Miss')
     dataset['Title'] = dataset['Title'].replace('Mme', 'Mrs')
-
+'''
 for dataset in full_data:
     # Mapping Sex
     dataset['Sex'] = dataset['Sex'].map( {'female': 0, 'male': 1} ).astype(int)
-    
+    '''
     # Mapping titles
     title_mapping = {"Mr": 1, "Master": 2, "Mrs": 3, "Miss": 4, "Rare": 5}
     dataset['Title'] = dataset['Title'].map(title_mapping)
     dataset['Title'] = dataset['Title'].fillna(0)
-
+'''
     # Mapping Embarked
     dataset['Embarked'] = dataset['Embarked'].map( {'S': 0, 'C': 1, 'Q': 2} ).astype(int)
     
@@ -125,24 +152,53 @@ for dataset in full_data:
     dataset.loc[(dataset['Age'] > 48) & (dataset['Age'] <= 64), 'Age'] = 3
     dataset.loc[ dataset['Age'] > 64, 'Age'] ;
 # Feature selection: remove variables no longer containing relevant information
-drop_elements = ['PassengerId', 'Name', 'Ticket', 'Cabin', 'SibSp']
+drop_elements = ['PassengerId', 'Name', 'Ticket', 'Cabin', 'SibSp','Parch']
 train = train.drop(drop_elements, axis = 1)
 test  = test.drop(drop_elements, axis = 1)
 
 print(train.head(3))
+print(test.head(3))
 
-###################################################################
+####################survived passengers count###############################################
 
-print('aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa')
-print('male and female in train data')
+print('########### survived, not survived passengers ######################')
+      
+print('survived passengers in train data')
+print(pd.value_counts(train['Survived'].values))
+
+print('survived passengers in test data')
+print(pd.value_counts(totalTest['Survived'].values))
+
+print('total male and female in train data')
 print(train['Sex'].value_counts())
-print('male and female in test data')
-print(test['Sex'].value_counts())
 
+print('total male and female in test data')
+print(totalTest['Sex'].value_counts())
 
-print(train.groupby(['Sex'],['Survived']).size())
+#Two step query to find sum of survived people, grouped by their sex(male1 and female0) in train
+print('total male and female survived in train data')
+out_survived = train.groupby(['Sex'])['Survived'].sum()
+print(out_survived)
 
-####################################################################
+print('total male and female survived in test data')
+#Two step query to find sum of survived people, grouped by their sex(male1 and female0) in test
+
+out_survived = totalTest.groupby(['Sex'])['Survived'].sum()
+print(out_survived)
+
+print(train['Survived'].groupby(train['Sex']).mean())
+print(totalTest['Survived'].groupby(totalTest['Sex']).mean())
+
+#query to find sum of survived people, grouped by their passenger class (1 > 2 > 3)
+print('survived people, grouped by their passenger class (1 > 2 > 3) in train data')
+out_survived = train.groupby(['Pclass'])['Survived'].sum()
+print(out_survived)
+
+print('survived people, grouped by their passenger class (1 > 2 > 3) in test data')
+out_survived = totalTest.groupby(['Pclass'])['Survived'].sum()
+print(out_survived)
+
+####################### pearson correlation model #######################################
 
 #the relationship between our variables by plotting the Pearson Correlation between all the attributes in our dataset 
 colormap = plt.cm.viridis
@@ -183,24 +239,36 @@ df = pd.DataFrame({"Max Depth": depth_range, "Average Accuracy": accuracies})
 df = df[["Max Depth", "Average Accuracy"]]
 print(df.to_string(index=False))
 
-
-# Create Numpy arrays of train, test and target (Survived) dataframes to feed into our models
-y_train = train['Survived']
-x_train = train.drop(['Survived'], axis=1).values 
-x_test = test.values
-
-#################################################
+##############################################################################
 '''
+#print("Columns after preprocessing: ",full_data.columns)
+# Applying these two columns to string type so that we can one hot encode it.
+full_data['Sex'] = full_data['Sex'].apply(str)
+full_data['IsAlone'] = full_data['IsAlone'].apply(str)
+full_data['Has_Cabin'] = full_data['Has_Cabin'].apply(str)
+
+########################## One Hot Encoding of Categorical features ################################
+  
+full_data_dummies=pd.get_dummies(full_data)
+#print("full_dataset \n",full_dataset)
+print("Columns after One Hot Encoding ",full_data_dummies.columns)
+X = full_data_dummies.drop(['Survived'], axis=1).values 
+y = full_data_dummies['Survived'].values
+
+######################## grid search ##########################################################
+
 print('######### grid search on decision tree#################')
       
-param_grid = {"max_depth": [1,2,3,4,5,6,7,8,9,10],
-              "min_samples_leaf": [6,7,8,9,10,11,12,13,14],
+param_grid = {"max_depth": [3,4,5,6,7,8,9],
+              "min_samples_leaf": [1,2,3,4,5,6,7,8,9,10],
               "criterion":["gini", "entropy"]}
 decision_tree = tree.DecisionTreeClassifier()
 tree_cv = GridSearchCV(estimator = decision_tree,param_grid = param_grid, cv=3, n_jobs=-1)
 tree_cv.fit(x_train, y_train)
+print('hiiiiiiiiiiiiii')
 print("tuned decision tree parameters: ",format(tree_cv.best_params_))
 print("Best Score is: ",format(tree_cv.best_score_))
+
 # Predicting results for test dataset
 y_pred = tree_cv.predict(x_test)
 submission1 = pd.DataFrame({
@@ -212,9 +280,14 @@ acc_decision_tree_train = round(tree_cv.score(x_train, y_train) * 100, 2)
 print("Accuracy on train dataset",acc_decision_tree_train)
 acc_decision_tree_test = round(accuracy_score(test_label['Survived'].values , submission1['Survived'].values)*100, 2)
 print("Accuracy on test dataset",acc_decision_tree_test)
-
 '''
-###finding accuracy using direct max_depth=3##################################
+##################### fitting model #############################################
+
+# Create Numpy arrays of train, test and target (Survived) dataframes to feed into our models
+y_train = train['Survived']
+x_train = train.drop(['Survived'], axis=1).values 
+x_test = test.values
+###finding accuracy using  direct max_depth=3##################################
 # Create Decision Tree with max_depth = 3
 decision_tree = tree.DecisionTreeClassifier(max_depth = 3)
 decision_tree.fit(x_train, y_train)
@@ -227,16 +300,63 @@ submission = pd.DataFrame({
     })
 submission.to_csv('submission.csv', index=False)
 
-#acc_decision_tree = round(decision_tree.score(x_train, y_train) * 100, 2)
-#print('acc_decision_tree of train data',acc_decision_tree)
+acc_decision_tree = round(decision_tree.score(x_train, y_train) * 100, 2)
+print('acc_decision_tree of train data',acc_decision_tree)
 acc_decision_tree_test = round(accuracy_score(test_label['Survived'].values , submission['Survived'].values)*100, 2)
 print("Accuracy on test dataset",acc_decision_tree_test)
 
-####################################################################
+##################### confusion matrix on train data #######################################
 
+print('confusion matrix of train data')
+from sklearn.model_selection import cross_val_predict
+from sklearn.metrics import confusion_matrix
+predictions = cross_val_predict(decision_tree, x_train, y_train)
+print(confusion_matrix(y_train, predictions))
 
+from sklearn.metrics import precision_score, recall_score
 
-################creating tree diagram###############################
+print("Precision:", precision_score(y_train, predictions))
+print("Recall:",recall_score(y_train, predictions))
+
+from sklearn.metrics import f1_score
+print('f_score',f1_score(y_train, predictions))
+'''
+from sklearn.metrics import precision_recall_curve
+
+# getting the probabilities of our predictions
+y_scores = decision_tree.predict_proba(x_train)
+y_scores = y_scores[:,1]
+
+precision, recall, threshold = precision_recall_curve(y_train, y_scores)
+def plot_precision_and_recall(precision, recall, threshold):
+    plt.plot(threshold, precision[:-1], "r-", label="precision", linewidth=5)
+    plt.plot(threshold, recall[:-1], "b", label="recall", linewidth=5)
+    plt.xlabel("threshold", fontsize=19)
+    plt.legend(loc="upper right", fontsize=19)
+    plt.ylim([0, 1])
+
+plt.figure(figsize=(14, 7))
+plot_precision_and_recall(precision, recall, threshold)
+plt.show()
+'''
+#################### confusion matrix on test data ##########################
+
+print('confusion matrix of test data')
+from sklearn.model_selection import cross_val_predict
+from sklearn.metrics import confusion_matrix
+predictions = cross_val_predict(decision_tree,x_test,test_label['Survived'].values)
+print(confusion_matrix(test_label['Survived'].values, predictions))
+
+from sklearn.metrics import precision_score, recall_score
+
+print("Precision:", precision_score(test_label['Survived'].values, predictions))
+print("Recall:",recall_score(test_label['Survived'].values, predictions))
+
+from sklearn.metrics import f1_score
+print('f_score',f1_score(test_label['Survived'].values, predictions))
+
+################creating tree diagram######################################
+
 # Export our trained model as a .dot file
 with open("tree1.dot", 'w') as f:
      f = tree.export_graphviz(decision_tree,
@@ -249,7 +369,7 @@ with open("tree1.dot", 'w') as f:
                               filled= True )
 #note: dot tree1.dot -Tpng -o tree1.png        
     
-
+#############################################################################
 
 
 
